@@ -1,0 +1,32 @@
+version: '4.1'
+
+networks:
+  database:
+    driver: bridge
+
+services:
+  discord-bot:
+    build: ./
+    tty: true
+    volumes:
+      - ./bot/:/workspace/discord-bot:cached
+      - node-modules:/workspace/discord-bot/node_modules
+    working_dir: /workspace/discord-bot
+    networks:
+      - database
+
+  db:
+    image: postgres:latest
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+    networks:
+      - database
+
+volumes:
+  node-modules:
+  postgres-data:
