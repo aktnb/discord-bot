@@ -6,7 +6,8 @@
   "scripts": {
     "start": "cd ./dist && node ./index.js",
     "debug": "cd ./src && ts-node ./index.ts",
-    "build": "tsc -p ."
+    "build": "tsc -p .",
+    "typeorm": "typeorm-ts-node-commonjs -d src/data-source.ts"
   },
   "author": "",
   "license": "ISC",

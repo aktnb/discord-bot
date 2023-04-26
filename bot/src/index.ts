@@ -2,6 +2,8 @@ import fs from 'fs';
 import { Client } from "discord.js";
 import { EventListener } from './core';
 import { TOKEN } from './config.json';
+import "reflect-metadata";
+import { AppDataSource } from './data-source';
 
 /**
  * CLIENT
@@ -49,6 +51,9 @@ async function main() {
     console.log('環境変数 TOKEN を設定してください');
     return;
   }
+
+  //  DBに接続
+  await AppDataSource.initialize();
 
   //  イベントを登録する
   const events_num = await addEventListener();
