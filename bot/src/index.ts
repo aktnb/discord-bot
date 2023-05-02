@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { Client } from "discord.js";
+import { Client, GatewayIntentBits, User } from "discord.js";
 import { EventListener } from './core';
 import { TOKEN } from './config.json';
 import "reflect-metadata";
@@ -8,7 +8,7 @@ import { AppDataSource } from './data-source';
 /**
  * CLIENT
  */
-export const CLIENT = new Client({ intents:[] });
+export const CLIENT = new Client({ intents:[GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMembers] });
 
 /**
  * すべてのイベントハンドラを登録する
