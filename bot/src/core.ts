@@ -22,7 +22,7 @@ export class EventListener {
   /**
    * コンストラクタ
    * @param eventName Event Name
-   * @param once is Event type once
+   * @param once Is event type once
    * @param execute Event Handler
    */
   constructor(eventName: Events, once: boolean, execute: (...args: any[]) => Awaitable<void>) {
