@@ -6,11 +6,11 @@ export class PrivateChannel {
   @PrimaryColumn()
   voiceChannelId!: string;
 
-  @Column()
-  roleId!: string;
+  @Column({nullable: true, default: null, type: 'varchar'})
+  roleId?: string | null = null;
 
-  @Column()
-  textChannelId!: string;
+  @Column({nullable: true, default: null, type: 'varchar'})
+  textChannelId?: string | null = null;
 
   @OneToMany(() => Member, member => member.privateChannel)
   members!: Member[];
