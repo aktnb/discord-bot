@@ -27,11 +27,6 @@ export const RoomController = new class {
       return;
     }
 
-    //  ログ
-    console.log(`入室処理`);
-    console.log(`member: ${target.displayName}`);
-    console.log(`voiceChannel(guild): ${voiceChannel.name}(${voiceChannel.guild.name})`);
-
     //  対応するPrivateChannelがDB上に存在するか
     const isPrivateChannelExist = await AppDataSource.getRepository(PrivateChannel).findOneBy({
       voiceChannelId: voiceChannel.id
@@ -181,6 +176,12 @@ export const RoomController = new class {
    * @returns
    */
   async joinTransaction(manager: EntityManager, voiceChannel: VoiceChannel, target: GuildMember): Promise<void> {
+
+    //  ログ
+    console.log(`入室処理`);
+    console.log(`  member             : ${target.displayName}`);
+    console.log(`  voiceChannel(guild): ${voiceChannel.name}(${voiceChannel.guild.name})`);
+
     //  PrivateChannelを専有ロックで取得
     const privateChannel = await manager.findOne(PrivateChannel, {
       where: {
@@ -234,6 +235,12 @@ export const RoomController = new class {
    * @returns
    */
   async leaveTransaction(manager: EntityManager, voiceChannel: VoiceChannel, target: GuildMember): Promise<void> {
+
+    //  ログ
+    console.log(`退室処理`);
+    console.log(`  member             : ${target.displayName}`);
+    console.log(`  voiceChannel(guild): ${voiceChannel.name}(${voiceChannel.guild.name})`);
+
     //  PrivateChannelを専有ロックで取得
     const privateChannel = await manager.findOne(PrivateChannel, {
       where: {
