@@ -46,19 +46,26 @@ async function addEventListener(): Promise<number> {
  */
 async function addCommandHandler(): Promise<number> {
   const handlers = new Collection<string, CommandHandler>();
+
+  //  ./commandディレクトリ下にあるファイルのファイル名を取得
   const commandFiles = fs.readdirSync('./commands');
 
+  //  各コマンドハンドラ定義ファイルに処理を実行する
   await Promise.all(commandFiles.map(async f => {
+    //  コマンドハンドラを読み込む
     const { handler }: { handler: CommandHandler } = await import(`./commands/${f}`);
 
+    //  コマンドを記録
     handlers.set(handler.command.name, handler);
   }));
 
+  //  コマンドハンドラを登録する
   CLIENT.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) {
       return;
     }
 
+    //  ハンドラを読み込む
     const handler = handlers.get(interaction.commandName);
 
     if (!handler) {
@@ -66,6 +73,7 @@ async function addCommandHandler(): Promise<number> {
     }
 
     try {
+      //  ハンドラ呼び出し
       await handler.handler(<CommandInteraction>interaction);
     } catch (err) {
       console.error(err);
