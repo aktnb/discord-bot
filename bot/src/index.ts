@@ -8,7 +8,7 @@ import { AppDataSource } from './data-source';
 /**
  * CLIENT
  */
-export const CLIENT = new Client({ intents:[GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMembers] });
+export const CLIENT = new Client({ intents:[GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildPresences] });
 
 /**
  * すべてのイベントを読み込み、登録する
