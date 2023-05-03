@@ -1,6 +1,6 @@
 import fs from 'fs';
-import { Client, GatewayIntentBits, User } from "discord.js";
-import { EventListener } from './core';
+import { Client, Collection, CommandInteraction, GatewayIntentBits, User } from "discord.js";
+import { CommandHandler, EventListener } from './core';
 import { TOKEN } from './config.json';
 import "reflect-metadata";
 import { AppDataSource } from './data-source';
@@ -8,11 +8,11 @@ import { AppDataSource } from './data-source';
 /**
  * CLIENT
  */
-export const CLIENT = new Client({ intents:[GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMembers] });
+export const CLIENT = new Client({ intents:[GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildPresences] });
 
 /**
- * すべてのイベントハンドラを登録する
- * @returns 登録したイベントハンドラの数
+ * すべてのイベントを読み込み、登録する
+ * @returns 登録したイベントの数
  */
 async function addEventListener(): Promise<number> {
   //  ./eventsディレクトリ下にあるファイルのファイル名を取得
@@ -41,6 +41,55 @@ async function addEventListener(): Promise<number> {
 
 
 /**
+ * すべてのコマンドを読み込む
+ * @returns 読み込んだコマンドの数
+ */
+async function addCommandHandler(): Promise<number> {
+  const handlers = new Collection<string, CommandHandler>();
+
+  //  ./commandディレクトリ下にあるファイルのファイル名を取得
+  const commandFiles = fs.readdirSync('./commands');
+
+  //  各コマンドハンドラ定義ファイルに処理を実行する
+  await Promise.all(commandFiles.map(async f => {
+    //  コマンドハンドラを読み込む
+    const { handler }: { handler: CommandHandler } = await import(`./commands/${f}`);
+
+    //  コマンドを記録
+    handlers.set(handler.command.name, handler);
+  }));
+
+  //  コマンドハンドラを登録する
+  CLIENT.on('interactionCreate', async interaction => {
+    if (!interaction.isCommand()) {
+      return;
+    }
+
+    //  ハンドラを読み込む
+    const handler = handlers.get(interaction.commandName);
+
+    if (!handler) {
+      return;
+    }
+
+    try {
+      //  ハンドラ呼び出し
+      await handler.handler(<CommandInteraction>interaction);
+    } catch (err) {
+      console.error(err);
+      await interaction.reply({
+        content: 'There was an error while executing this command!',
+        ephemeral: true,
+      });
+    }
+
+  });
+
+  return handlers.size;
+}
+
+
+/**
  * エントリポイント
  * @returns
  */
@@ -55,9 +104,13 @@ async function main() {
   //  DBに接続
   await AppDataSource.initialize();
 
-  //  イベントを登録する
+  //  イベントを読み込む
   const events_num = await addEventListener();
-  console.log(`${events_num}個のイベントを登録しました`);
+  console.log(`${events_num}個のイベントを読み込みました`);
+
+  //  コマンドを読み込む
+  const commands_num = await addCommandHandler();
+  console.log(`${commands_num}個のコマンドを読み込みました`);
 
   //  ログイン
   console.log('Discord Botを起動します');

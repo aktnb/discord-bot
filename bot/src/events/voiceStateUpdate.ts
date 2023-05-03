@@ -1,6 +1,7 @@
 import { Events, GuildMember, VoiceChannel, VoiceState } from "discord.js";
 import { EventListener } from "../core";
 import { RoomController } from "../controller/RoomController";
+import { NotificationController } from "../controller/NotificationController";
 
 export const listener = new EventListener(
   Events.VoiceStateUpdate,
@@ -24,12 +25,14 @@ export const listener = new EventListener(
     if (!bChannelExist && aChannelExist && after.member instanceof GuildMember) {
       //  入室のみ
       await RoomController.memberJoin(after.channel, after.member);
+      await NotificationController.notify(after.channel, after.member);
       return;
     }
 
     if (bChannelExist && aChannelExist && after.member instanceof GuildMember) {
       //  チャンネル間の移動
       await RoomController.memberMove(before.channel, after.channel, after.member);
+      await NotificationController.notify(after.channel, after.member);
       return;
     }
   }

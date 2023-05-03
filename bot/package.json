@@ -7,7 +7,8 @@
     "start": "cd ./dist && node ./index.js",
     "debug": "cd ./src && ts-node ./index.ts",
     "build": "tsc -p .",
-    "typeorm": "typeorm-ts-node-commonjs -d src/data-source.ts"
+    "typeorm": "typeorm-ts-node-commonjs -d src/data-source.ts",
+    "deploy-command": "cd ./src && ts-node ./deploy-command"
   },
   "author": "",
   "license": "ISC",

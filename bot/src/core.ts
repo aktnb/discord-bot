@@ -1,4 +1,4 @@
-import { Awaitable, Events } from 'discord.js';
+import { Awaitable, CommandInteraction, Events, SlashCommandBuilder, SlashCommandSubcommandsOnlyBuilder } from 'discord.js';
 
 /**
  * イベントハンドラ
@@ -29,5 +29,19 @@ export class EventListener {
     this.eventName = eventName;
     this.once = once;
     this.execute = execute;
+  }
+}
+
+type CMD = SlashCommandBuilder|SlashCommandSubcommandsOnlyBuilder|Omit<SlashCommandBuilder, 'addSubcommand' | 'addSubcommandGroup'>
+
+/**
+ * コマンドハンドラ
+ */
+export class CommandHandler {
+  command: CMD;
+  handler: (interaction: CommandInteraction) => Promise<void>;
+  constructor(command: CMD, handler: (interaction: CommandInteraction) => Promise<void>) {
+    this.command = command;
+    this.handler = handler;
   }
 }
