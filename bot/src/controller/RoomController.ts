@@ -27,42 +27,21 @@ export const RoomController = new class {
       return;
     }
 
-    //  対応するPrivateChannelがDB上に存在するか
-    const isPrivateChannelExist = await AppDataSource.getRepository(PrivateChannel).findOneBy({
-      voiceChannelId: voiceChannel.id
-    }) != null;
-    //  対応するMemberがDB上に存在するか
-    const isMemberExist = await AppDataSource.getRepository(Member).findOneBy({
-      userId: target.id,
-    }) != null;
+    await AppDataSource.manager.upsert(
+      PrivateChannel, 
+      [{
+        voiceChannelId: voiceChannel.id
+      }],
+      [ 'voiceChannelId' ]
+    );
 
-    if (!isPrivateChannelExist) {
-      //  PrivateChannelがDBにない場合
-      try {
-        //  新しくPrivateChannelを作成
-        console.log('新しいPrivateChannelをDBに記録');
-        const privateChannel = new PrivateChannel();
-        privateChannel.voiceChannelId = voiceChannel.id;
-        await AppDataSource.manager.save(privateChannel);
-      } catch (e) {
-        console.error(e);
-        console.log('Error on creating private channel');
-      }
-    }
-
-    if (!isMemberExist) {
-      //  MemberがDBにない場合
-      try {
-        //  新しくMemberを作成;
-        console.log('新しいMemberをDBに記録');
-        const member = new Member();
-        member.userId = target.id;
-        await AppDataSource.manager.save(member);
-      } catch (e) {
-        console.error(e);
-        console.log('Error on creating member');
-      }
-    }
+    await AppDataSource.manager.upsert(
+      Member,
+      [{
+        userId: target.id
+      }],
+      [ 'userId' ]
+    );
 
     //  トランザクション開始
     await AppDataSource.transaction(async manager => {
@@ -127,41 +106,21 @@ export const RoomController = new class {
         return;
       }
 
-      //  対応するPrivateChannelがDB上に存在するか
-      const isPrivateChannelExist = await AppDataSource.getRepository(PrivateChannel).findOneBy({
-        voiceChannelId: afterChannel.id
-      }) != null;
-      //  対応するMemberがDB上に存在するか
-      const isMemberExist = await AppDataSource.getRepository(Member).findOneBy({
-        userId: target.id,
-      }) != null;
+      await AppDataSource.manager.upsert(
+        PrivateChannel, 
+        [{
+          voiceChannelId: afterChannel.id
+        }],
+        [ 'voiceChannelId' ]
+      );
 
-      if (!isPrivateChannelExist) {
-        //  PrivateChannelがDBにない場合
-        try {
-          //  新しくPrivateChannelを作成
-          console.log('Create New PrivateChannel');
-          const privateChannel = new PrivateChannel();
-          privateChannel.voiceChannelId = afterChannel.id;
-          await AppDataSource.manager.save(privateChannel);
-        } catch (e) {
-          console.error(e)
-          console.log('Error on creating private channel');
-        }
-      }
-
-      if (!isMemberExist) {
-        //  MemberがDBにない場合
-        try {
-          //  新しくMemberを作成
-          console.log('Create New Member');
-          const member = new Member();
-          member.userId = target.id;
-          await AppDataSource.manager.save(member);
-        } catch {
-          console.log('Error on creating member');
-        }
-      }
+      await AppDataSource.manager.upsert(
+        Member,
+        [{
+          userId: target.id
+        }],
+        [ 'userId' ]
+      );
 
       //  入室処理
       await this.joinTransaction(manager, afterChannel, target);
