@@ -90,6 +90,10 @@ export const NotificationController = new class {
         return;
       }
 
+      if (voiceChannel.members.has(member.id) === true) {
+        return;
+      }
+
       if (member.presence?.status !== 'online' && setting.always === false) {
         return;
       }
