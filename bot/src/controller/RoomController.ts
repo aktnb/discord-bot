@@ -27,25 +27,76 @@ export const RoomController = new class {
       return;
     }
 
-    await AppDataSource.manager.upsert(
-      PrivateChannel, 
-      [{
-        voiceChannelId: voiceChannel.id
-      }],
-      [ 'voiceChannelId' ]
-    );
-
-    await AppDataSource.manager.upsert(
-      Member,
-      [{
-        userId: target.id
-      }],
-      [ 'userId' ]
-    );
-
     //  トランザクション開始
     await AppDataSource.transaction(async manager => {
-      await this.joinTransaction(manager, voiceChannel, target);
+      await manager.upsert(
+        PrivateChannel,
+        [
+          {
+            voiceChannelId: voiceChannel.id
+          }
+        ],
+        [ 'voiceChannelId' ]
+      );
+
+      await manager.upsert(
+        Member,
+        [
+          {
+            userId: target.id,
+            privateChannel: {
+              voiceChannelId: voiceChannel.id
+            }
+          }
+        ],
+        [ 'userId' ]
+      );
+
+      //  PrivateChannelを専有ロックで取得
+      const privateChannel = await manager.findOne(PrivateChannel, {
+        where: {
+          voiceChannelId: voiceChannel.id,
+        },
+        lock: {
+          mode: 'pessimistic_write'
+        }
+      });
+
+      //  Memberを専有ロックで取得
+      const member = await manager.findOne(Member, {
+        where: {
+          userId: target.id,
+        },
+        lock: {
+          mode: 'pessimistic_write'
+        }
+      });
+
+      if (privateChannel == null || member == null) {
+        return;
+      }
+      //  対応するTextChannelを用意
+      const textChannel = await this.findOrCreateTextChannel(privateChannel.textChannelId, voiceChannel);
+      //  対応するRoleを用意
+      const role = await this.findOrCreateRole(privateChannel.roleId, voiceChannel);
+
+      //  PrivateChannelエンティティのカラムを変更
+      privateChannel.textChannelId = textChannel.id;
+      privateChannel.roleId = role.id;
+      member.privateChannel = privateChannel;
+
+      //  DBの変更を保存
+      await manager.save([privateChannel, member]);
+
+      //  TextChannelの権限を編集
+      await textChannel.permissionOverwrites.edit(role, {
+        ReadMessageHistory: true,
+        ViewChannel: true,
+        SendMessages: true
+      });
+
+      await target.roles.add(role);
+
     });
   }
 
@@ -70,176 +121,53 @@ export const RoomController = new class {
 
     //  トランザクション開始
     await AppDataSource.transaction(async manager => {
-      await this.leaveTransaction(manager, voiceChannel, target);
-    });
-  }
+      //  PrivateChannelを専有ロックで取得
+      const privateChannel = await manager.findOne(PrivateChannel, {
+        where: {
+          voiceChannelId: voiceChannel.id,
+        },
+        lock: {
+          mode: 'pessimistic_write'
+        }
+      });
+      //  Memberを専有ロックで取得
+      const member = await manager.findOne(Member, {
+        where: { 
+          userId: target.id,
+        },
+        lock: {
+          mode: 'pessimistic_write'
+        }
+      });
 
-  /**
-   * メンバーが部屋を移動したときの処理
-   * @param beforeChannel
-   * @param afterChannel
-   * @param target
-   */
-  async memberMove(beforeChannel: VoiceChannel, afterChannel: VoiceChannel, target: GuildMember) {
-    //  メンバーがBotか調べる
-    if (target.user.bot) {
-      //  Botの場合、アーリーリターン
-      return;
-    }
-
-    //  トランザクション実行
-    await AppDataSource.transaction(async manager => {
-
-      //  退室元がAFKチャンネルか調べる
-      if (beforeChannel != beforeChannel.guild.afkChannel) {
-        //  通常チャンネルの場合、退室処理
-        await this.leaveTransaction(manager, beforeChannel, target);
-      } else {
-        //  AFKチャンネルの場合
-        console.log(`${target.displayName}がAFKチャンネルから退室`);
-      }
-
-      //  入室先がAFKチャンネルか調べる
-      if (afterChannel == afterChannel.guild.afkChannel) {
-        //  AFKチャンネルの場合、アーリーリターン
-        console.log(`${target.displayName}がAFKチャンネルに入室`);
+      if (privateChannel == null || member == null) {
         return;
       }
 
-      await AppDataSource.manager.upsert(
-        PrivateChannel, 
-        [{
-          voiceChannelId: afterChannel.id
-        }],
-        [ 'voiceChannelId' ]
-      );
+      member.privateChannel = null;
 
-      await AppDataSource.manager.upsert(
-        Member,
-        [{
-          userId: target.id
-        }],
-        [ 'userId' ]
-      );
-
-      //  入室処理
-      await this.joinTransaction(manager, afterChannel, target);
-    });
-  }
-
-  /**
-   * 入室
-   * @param manager
-   * @param voiceChannel
-   * @param target
-   * @returns
-   */
-  async joinTransaction(manager: EntityManager, voiceChannel: VoiceChannel, target: GuildMember): Promise<void> {
-
-    //  ログ
-    console.log(`入室処理`);
-    console.log(`  member             : ${target.displayName}`);
-    console.log(`  voiceChannel(guild): ${voiceChannel.name}(${voiceChannel.guild.name})`);
-
-    //  PrivateChannelを専有ロックで取得
-    const privateChannel = await manager.findOne(PrivateChannel, {
-      where: {
-        voiceChannelId: voiceChannel.id,
-      },
-      lock: {
-        mode: 'pessimistic_write'
-      }
-    });
-
-    //  Memberを専有ロックで取得
-    const member = await manager.findOne(Member, {
-      where: {
-        userId: target.id,
-      },
-      lock: {
-        mode: 'pessimistic_write'
-      }
-    });
-
-    if (privateChannel == null || member == null) {
-      return;
-    }
-
-    //  対応するTextChannelを用意
-    const textChannel = await this.findOrCreateTextChannel(privateChannel.textChannelId, voiceChannel);
-    //  対応するRoleを用意
-    const role = await this.findOrCreateRole(privateChannel.roleId, voiceChannel);
-
-    //  PrivateChannelエンティティのカラムを変更
-    privateChannel.textChannelId = textChannel.id;
-    privateChannel.roleId = role.id;
-    member.privateChannel = privateChannel;
-
-    //  DBの変更を保存
-    await manager.save([privateChannel, member]);
-
-    //  TextChannelの権限を編集
-    await textChannel.permissionOverwrites.edit(role, {
-      ReadMessageHistory: true,
-      ViewChannel: true,
-      SendMessages: true
-    });
-  }
-
-  /**
-   * 退出処理
-   * @param manager
-   * @param voiceChannel
-   * @param target
-   * @returns
-   */
-  async leaveTransaction(manager: EntityManager, voiceChannel: VoiceChannel, target: GuildMember): Promise<void> {
-
-    //  ログ
-    console.log(`退室処理`);
-    console.log(`  member             : ${target.displayName}`);
-    console.log(`  voiceChannel(guild): ${voiceChannel.name}(${voiceChannel.guild.name})`);
-
-    //  PrivateChannelを専有ロックで取得
-    const privateChannel = await manager.findOne(PrivateChannel, {
-      where: {
-        voiceChannelId: voiceChannel.id,
-      },
-      lock: {
-        mode: 'pessimistic_write'
-      }
-    });
-    //  Memberを専有ロックで取得
-    const member = await manager.findOne(Member, {
-      where: { 
-        userId: target.id,
-      },
-      lock: {
-        mode: 'pessimistic_write'
-      }
-    });
-
-    if (privateChannel == null || member == null) {
-      return;
-    }
-
-    member.privateChannel = null;
-
-    //  ボイスチャンネルが0人になるか調べる
-    if (voiceChannel.members.filter(m => !m.user.bot && m != target).size == 0) {
-      //  0人になる場合、TextChannelとRoleを削除
-      const textChannel = await this.findTextChannel(privateChannel.textChannelId, voiceChannel);
       const role = await this.findRole(privateChannel.roleId, voiceChannel);
 
-      await textChannel?.delete();
-      await role?.delete();
+      if (role) {
+        await target.roles.remove(role);
+      }
 
-      privateChannel.textChannelId = null;
-      privateChannel.roleId = null;
-    }
+      //  ボイスチャンネルが0人になるか調べる
+      if (voiceChannel.members.every(m => m.user.bot || m == target)) {
 
-    //  DBを更新
-    await manager.save([privateChannel, member]);
+        //  0人になる場合、TextChannelとRoleを削除
+        const textChannel = await this.findTextChannel(privateChannel.textChannelId, voiceChannel);
+
+        await textChannel?.delete();
+        await role?.delete();
+
+        privateChannel.textChannelId = null;
+        privateChannel.roleId = null;
+      }
+
+      //  DBを更新
+      await manager.save([privateChannel, member]);
+    });
   }
 
   /**

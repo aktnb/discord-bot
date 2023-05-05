@@ -15,7 +15,7 @@ export const NotificationController = new class {
    * @param always 
    * @param all 
    */
-  async addNotification(target: GuildMember, voiceChannel: VoiceChannel, self: boolean, after: boolean, always: boolean, all: boolean) {
+  async addNotification(target: GuildMember, voiceChannel: VoiceChannel, always: boolean, all: boolean) {
 
     //  トランザクション開始
     await AppDataSource.transaction(async manager => {
@@ -24,9 +24,7 @@ export const NotificationController = new class {
       console.log('通知登録');
 
       const notification = new VcNotification();
-      notification.afterJoin = after;
       notification.all = all;
-      notification.self = self;
       notification.always = always;
       notification.voiceChannelId = voiceChannel.id;
       notification.member = { userId: target.id };
@@ -66,8 +64,6 @@ export const NotificationController = new class {
         voiceChannel: voiceChannel,
         all: notification.all,
         always: notification.always,
-        self: notification.self,
-        after: notification.afterJoin
       };
     }));
 
@@ -99,14 +95,6 @@ export const NotificationController = new class {
       }
 
       if (voiceChannel.members.filter(m => !m.user.bot).size > 1 && setting.all === false) {
-        return;
-      }
-
-      if (voiceChannel.members.has(member.id) === true && setting.afterJoin === false) {
-        return;
-      }
-
-      if (trigger === member && setting.self === false) {
         return;
       }
 

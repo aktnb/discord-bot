@@ -18,10 +18,4 @@ export class VcNotification {
 
   @Column()
   all!: boolean;
-
-  @Column()
-  self!: boolean;
-
-  @Column()
-  afterJoin!: boolean;
 }
