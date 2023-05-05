@@ -25,20 +25,8 @@ export const handler = new CommandHandler(
         )
         .addBooleanOption(option =>
           option
-            .setName('self')
-            .setDescription('Trueの場合、自分自身の入室も通知します Default: False')
-            .setRequired(false)
-        )
-        .addBooleanOption(option =>
-          option
             .setName('always')
             .setDescription('Falseの場合、ステータスがオンラインの時のみ通知します Default: False')
-            .setRequired(false)
-        )
-        .addBooleanOption(option =>
-          option
-            .setName('after')
-            .setDescription('Trueの場合、自身が入室していても通知を継続します Default: False')
             .setRequired(false)
         )
     )
@@ -74,12 +62,10 @@ export const handler = new CommandHandler(
     await interaction.deferReply({ ephemeral: true });
     if (subCommand === 'add') {
       const all = !!options.getBoolean('all');
-      const self = !!options.getBoolean('self');
       const always = !!options.getBoolean('always');
-      const after = !!options.getBoolean('after');
       const voiceChannel = options.getChannel('voicechannel') as VoiceChannel;
 
-      await NotificationController.addNotification(interaction.member as GuildMember, voiceChannel, self, after, always, all);
+      await NotificationController.addNotification(interaction.member as GuildMember, voiceChannel, always, all);
 
       await interaction.editReply({
         content: '通知設定を追加しました'
