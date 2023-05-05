@@ -29,9 +29,10 @@ export const listener = new EventListener(
       return;
     }
 
-    if (bChannelExist && aChannelExist && after.member instanceof GuildMember) {
+    if (bChannelExist && aChannelExist && bChannelExist && after.member instanceof GuildMember) {
       //  チャンネル間の移動
-      await RoomController.memberMove(before.channel, after.channel, after.member);
+      await RoomController.memberLeave(before.channel, after.member);
+      await RoomController.memberJoin(after.channel, after.member);
       await NotificationController.notify(after.channel, after.member);
       return;
     }
