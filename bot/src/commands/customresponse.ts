@@ -81,7 +81,7 @@ export const handler = new CommandHandler(
       return;
     }
 
-    if (subCommand === 'delete') {
+    if (subCommand === 'del') {
       //  削除処理
       await interaction.deferReply({ ephemeral: true });
       const key = options.getString('key');
