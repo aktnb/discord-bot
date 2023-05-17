@@ -8,7 +8,18 @@ import { AppDataSource } from './data-source';
 /**
  * CLIENT
  */
-export const CLIENT = new Client({ intents:[GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildPresences] });
+export const CLIENT = new Client(
+  {
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildVoiceStates,
+      GatewayIntentBits.GuildMembers,
+      GatewayIntentBits.GuildPresences,
+      GatewayIntentBits.MessageContent,
+      GatewayIntentBits.GuildMessages,
+    ]
+  }
+);
 
 /**
  * すべてのイベントを読み込み、登録する
@@ -56,7 +67,7 @@ async function addCommandHandler(): Promise<number> {
     const { handler }: { handler: CommandHandler } = await import(`./commands/${f}`);
 
     //  コマンドを記録
-    handlers.set(handler.command.name, handler);
+    handlers.set(handler.data.name, handler);
   }));
 
   //  コマンドハンドラを登録する

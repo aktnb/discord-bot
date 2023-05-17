@@ -2,7 +2,6 @@ import { GuildMember, VoiceChannel } from "discord.js";
 import { AppDataSource } from "../data-source";
 import { Member } from "../entity/Member";
 import { VcNotification } from "../entity/VcNotification";
-import { CLIENT } from "..";
 
 export const NotificationController = new class {
 
@@ -57,6 +56,8 @@ export const NotificationController = new class {
         },
       }
     );
+
+    const { CLIENT } = await import('../index');
 
     const settings = await Promise.all(notifications.map(async notification => {
       const voiceChannel = await CLIENT.channels.fetch(notification.voiceChannelId) as VoiceChannel;

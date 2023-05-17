@@ -38,10 +38,10 @@ type CMD = SlashCommandBuilder|SlashCommandSubcommandsOnlyBuilder|Omit<SlashComm
  * コマンドハンドラ
  */
 export class CommandHandler {
-  command: CMD;
+  data: CMD;
   handler: (interaction: CommandInteraction) => Promise<void>;
-  constructor(command: CMD, handler: (interaction: CommandInteraction) => Promise<void>) {
-    this.command = command;
+  constructor(data: CMD, handler: (interaction: CommandInteraction) => Promise<void>) {
+    this.data = data;
     this.handler = handler;
   }
 }
