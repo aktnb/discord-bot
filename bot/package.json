@@ -2,7 +2,7 @@
   "name": "discord-bot",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "",
   "scripts": {
     "start": "cd ./dist && node ./index.js",
     "debug": "cd ./src && ts-node ./index.ts",

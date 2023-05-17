@@ -1,6 +1,7 @@
 import { Entity, ManyToOne, OneToMany, PrimaryColumn } from "typeorm"
 import { PrivateChannel } from "./PrivateChannel";
 import { VcNotification } from "./VcNotification";
+import { Response } from "./Response";
 
 @Entity()
 export class Member {
@@ -12,4 +13,7 @@ export class Member {
 
   @OneToMany(() => VcNotification, notification => notification.member)
   notifications?: VcNotification[];
+
+  @OneToMany(() => Response, responses => responses.author)
+  responses?: Response[];
 }
