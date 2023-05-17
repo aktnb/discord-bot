@@ -56,9 +56,9 @@ export const handler = new CommandHandler(
     const options = interaction.options as CommandInteractionOptionResolver;
     const subCommand = options.getSubcommand();
 
-    await interaction.deferReply({ ephemeral: true });
     if (subCommand === 'add') {
       //  追加処理
+      await interaction.deferReply({ ephemeral: true });
       const key = options.getString('key');
       const response = options.getString('response');
       if (!key || !response) {
@@ -83,6 +83,7 @@ export const handler = new CommandHandler(
 
     if (subCommand === 'delete') {
       //  削除処理
+      await interaction.deferReply({ ephemeral: true });
       const key = options.getString('key');
       if (!key) {
         await interaction.editReply({ content: 'keyを設定してください' });
@@ -111,6 +112,7 @@ export const handler = new CommandHandler(
     }
 
     if (subCommand === 'list') {
+      await interaction.deferReply({ ephemeral: false });
       try {
         const responses = await CustomResponseController.getGuildsCustomResponses(interaction.guild);
 
