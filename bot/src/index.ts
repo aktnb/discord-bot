@@ -76,6 +76,10 @@ async function addCommandHandler(): Promise<number> {
       return;
     }
 
+    if (interaction.user.bot) {
+      return;
+    }
+
     //  ハンドラを読み込む
     const handler = handlers.get(interaction.commandName);
 
@@ -131,4 +135,4 @@ async function main() {
 /**
  * 起動
  */
-main();
+// main();

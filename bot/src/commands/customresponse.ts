@@ -65,6 +65,10 @@ export const handler = new CommandHandler(
         await interaction.editReply({ content: 'key, responseを設定してください.' });
         return;
       }
+      if (key.startsWith('/') || response.startsWith('/') || response.startsWith('@')) {
+        await interaction.editReply({ content: 'key, responseの文字列が不適切です' });
+        return;
+      }
       try {
         await CustomResponseController.addCustomResponse(key, response, interaction.user, interaction.guild);
       } catch (e) {
