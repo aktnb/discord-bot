@@ -24,7 +24,7 @@ export const SanbakaController = new class {
     }
     const data = ct.getImageData(0, 0, 128, 128)
     const rgb_data = Array.from(data.data
-      .filter((v, i) => i % 4 !== 3)).map(v => v);
+      .filter((_v, i) => i % 4 !== 3)).map(v => v / 255);
     const tensor = tensor4d(rgb_data, [1, 128, 128, 3], 'float32');
     this.model.summary();
     const predict = await this.model.predict(tensor);
