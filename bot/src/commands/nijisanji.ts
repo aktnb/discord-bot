@@ -1,11 +1,11 @@
 import { CommandInteractionOptionResolver, SlashCommandBuilder } from "discord.js";
 import { CommandHandler } from "../core";
-import { SanbakaController } from "../controller/SanbakaController";
+import { NijisanjiController } from "../controller/NijisanjiController";
 
 export const handler = new CommandHandler(
   new SlashCommandBuilder()
-    .setName('sanbaka')
-    .setDescription('画像がさんばかの誰かを推測するよ v1.1')
+    .setName('nijisanji')
+    .setDescription('画像がにじさんじの誰か(アンジュ・カトリーナ、葉加瀬冬雪、壱百満天原サロメ、戌亥とこ、ジョー・力一、加賀美ハヤト、リゼ・ヘルエスタ、竜胆尊、鷹宮リオン、夜見れな)を推測するよ')
     .addAttachmentOption(option =>
       option
         .setName('face')
@@ -26,7 +26,7 @@ export const handler = new CommandHandler(
     await interaction.deferReply();
 
     try {
-      const predict = await SanbakaController.predict(image.url);
+      const predict = await NijisanjiController.predict(image.url);
       await interaction.editReply({ content: `この画像は \`${predict}\` じゃないかな～`, files: [image.url] });
     } catch (e) {
       if (e instanceof Error)
