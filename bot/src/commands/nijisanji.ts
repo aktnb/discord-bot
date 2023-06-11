@@ -17,7 +17,7 @@ export const handler = new CommandHandler(
     }
 
     const options = interaction.options as CommandInteractionOptionResolver;
-    const image = options.getAttachment('image')
+    const image = options.getAttachment('face')
     if (!image || !image.url) {
       await interaction.reply('画像が無いかも？');
       return;
