@@ -15,7 +15,7 @@ export const NijisanjiController = new class {
     ct.drawImage(image, 0, 0);
 
     if (!this.model) {
-      const stream =  io.fileSystem('');    //  <==========
+      const stream =  io.fileSystem('');    //  <===========
       this.model = await loadLayersModel(stream);
       if (!this.model) {
         throw new Error('モデルを読み込めませんでした');
