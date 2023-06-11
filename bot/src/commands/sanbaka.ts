@@ -5,7 +5,7 @@ import { SanbakaController } from "../controller/SanbakaController";
 export const handler = new CommandHandler(
   new SlashCommandBuilder()
     .setName('sanbaka')
-    .setDescription('画像がさんばかの誰かを推測するよ')
+    .setDescription('画像がさんばかの誰かを推測するよ v1.1')
     .addAttachmentOption(option =>
       option
         .setName('face')
