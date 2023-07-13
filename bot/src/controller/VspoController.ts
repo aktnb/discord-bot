@@ -1,4 +1,4 @@
-import { LayersModel, Tensor, browser, image, io, loadLayersModel, scalar, slice3d, tensor1d, tensor3d, tensor4d } from '@tensorflow/tfjs-node';
+import { LayersModel, Tensor, image, io, loadLayersModel, scalar, slice3d, tensor3d } from '@tensorflow/tfjs-node';
 import { createCanvas, loadImage } from 'canvas';
 
 export const VspoController = new class {

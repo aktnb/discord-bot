@@ -1,7 +1,5 @@
 import { GuildMember, VoiceChannel } from "discord.js";
-import { AppDataSource } from "../data-source";
-import { Member } from "../entity/Member";
-import { VcNotification } from "../entity/VcNotification";
+import { prisma } from "../lib/prisma";
 
 export const NotificationController = new class {
 
@@ -16,21 +14,25 @@ export const NotificationController = new class {
    */
   async addNotification(target: GuildMember, voiceChannel: VoiceChannel, always: boolean, all: boolean) {
 
-    //  トランザクション開始
-    await AppDataSource.transaction(async manager => {
-
-      //  ログ
-      console.log('通知登録');
-
-      const notification = new VcNotification();
-      notification.all = all;
-      notification.always = always;
-      notification.voiceChannelId = voiceChannel.id;
-      notification.member = { userId: target.id };
-
-      await manager.upsert(Member, [{ userId: target.id }], ['userId']);
-      await manager.upsert(VcNotification, [notification], ['voiceChannelId', 'member']);
+    await prisma.vc_notification.create({
+      data: {
+        all: all,
+        always: always,
+        voiceChannelId: voiceChannel.id,
+        member: {
+          connectOrCreate: {
+            where: {
+              userId: target.id,
+            },
+            create: {
+              userId: target.id,
+            },
+          },
+        },
+      },
     });
+
+    await prisma.$disconnect();
   }
 
   async delNotification(target: GuildMember, voiceChannel: VoiceChannel) {
@@ -38,24 +40,29 @@ export const NotificationController = new class {
     //  ログ
     console.log('通知解除');
 
-    await AppDataSource.transaction(async manager => {
-      await manager.delete(VcNotification, {
-        voiceChannelId: voiceChannel.id,
-        member: {
-          userId: target.id
-        }
-      });
+    await prisma.vc_notification.delete({
+      where: {
+        memberUserId_voiceChannelId: {
+          memberUserId: target.id,
+          voiceChannelId: voiceChannel.id,
+        },
+      },
     });
+
+    await prisma.$disconnect();
   }
 
   async listNotification(target: GuildMember) {
-    const notifications = await AppDataSource.manager.findBy(VcNotification,
-      {
+
+    const notifications = await prisma.vc_notification.findMany({
+      where: {
         member: {
           userId: target.id,
         },
-      }
-    );
+      },
+    });
+
+    await prisma.$disconnect();
 
     const { CLIENT } = await import('../index');
 
@@ -72,22 +79,24 @@ export const NotificationController = new class {
   }
 
   async notify(voiceChannel: VoiceChannel, trigger: GuildMember) {
-    const settings = await AppDataSource.manager.find(VcNotification, {
+
+    const settings = await prisma.vc_notification.findMany({
       where: {
         voiceChannelId: voiceChannel.id,
       },
-      relations: {
-        member: true
-      }
     });
 
     //  ログ
     console.log(`${settings.length}個の通知設定があります`);
 
     await Promise.all(settings.filter(async setting => {
-      const member = await voiceChannel.guild.members.fetch(setting.member.userId);
+      const member = await voiceChannel.guild.members.fetch(setting.memberUserId);
       if (!member) {
-        await AppDataSource.manager.delete(VcNotification, member);
+        await prisma.vc_notification.delete({
+          where: {
+            id: setting.id,
+          }
+        });
         return;
       }
 
@@ -108,5 +117,7 @@ export const NotificationController = new class {
         content: `${voiceChannel.url} に${voiceChannel.members.size}人のメンバーが入室しています`,
       });
     }));
+
+    await prisma.$disconnect();
   }
 }

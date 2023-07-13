@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model member {
+  userId                       String            @id(map: "PK_08897b166dee565859b7fb2fcc8") @db.VarChar
+  privateChannelVoiceChannelId String?           @db.VarChar
+  private_channel              private_channel?  @relation(fields: [privateChannelVoiceChannelId], references: [voiceChannelId], onUpdate: NoAction, map: "FK_8dab14238f44a7de035cdba802a")
+  response                     response[]
+  vc_notification              vc_notification[]
+}
+
+model migrations {
+  id        Int    @id(map: "PK_8c82d7f526340ab734260ea46be") @default(autoincrement())
+  timestamp BigInt
+  name      String @db.VarChar
+}
+
+model private_channel {
+  voiceChannelId String   @id(map: "PK_800361ee81151fd1157be46646b") @db.VarChar
+  roleId         String?  @db.VarChar
+  textChannelId  String?  @db.VarChar
+  member         member[]
+}
+
+model response {
+  id           Int     @id(map: "PK_f64544baf2b4dc48ba623ce768f") @default(autoincrement())
+  response     String  @db.VarChar
+  key          String  @db.VarChar
+  guildId      String  @db.VarChar
+  authorUserId String  @db.VarChar
+  member       member  @relation(fields: [authorUserId], references: [userId], onDelete: NoAction, onUpdate: NoAction, map: "FK_29eb0d1777dc420ed6a41ab90c9")
+
+  @@unique([key, guildId], map: "UQ_fbad5ca1e62356daf6845fd4f6f")
+}
+
+model vc_notification {
+  id             Int     @id(map: "PK_3eb9d1286d778bb1e06914c5295") @default(autoincrement())
+  voiceChannelId String  @db.VarChar
+  always         Boolean
+  all            Boolean
+  memberUserId   String  @db.VarChar
+  member         member  @relation(fields: [memberUserId], references: [userId], onDelete: NoAction, onUpdate: NoAction, map: "FK_f5fef802fe2db628c849dadf734")
+
+  @@unique([memberUserId, voiceChannelId], map: "UQ_467af850af8e2ca5d357edfd840")
+}

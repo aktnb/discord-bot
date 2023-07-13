@@ -1,9 +1,6 @@
-import { ChannelType, Guild, GuildMember, OverwriteResolvable, PermissionsBitField, Role, TextChannel, VoiceChannel } from "discord.js";
-import { AppDataSource } from "../data-source";
-import { PrivateChannel } from "../entity/PrivateChannel";
-import { Member } from "../entity/Member";
+import { ChannelType, GuildMember, OverwriteResolvable, PermissionsBitField, Role, TextChannel, VoiceChannel } from "discord.js";
 import { CLIENT } from "..";
-import { EntityManager } from "typeorm";
+import { prisma } from '../lib/prisma';
 
 export const RoomController = new class {
 
@@ -28,65 +25,66 @@ export const RoomController = new class {
     }
 
     //  トランザクション開始
-    await AppDataSource.transaction(async manager => {
-      await manager.upsert(
-        PrivateChannel,
-        [
-          {
-            voiceChannelId: voiceChannel.id
-          }
-        ],
-        [ 'voiceChannelId' ]
-      );
-
-      await manager.upsert(
-        Member,
-        [
-          {
-            userId: target.id,
-            privateChannel: {
-              voiceChannelId: voiceChannel.id
-            }
-          }
-        ],
-        [ 'userId' ]
-      );
-
-      //  PrivateChannelを専有ロックで取得
-      const privateChannel = await manager.findOne(PrivateChannel, {
-        where: {
-          voiceChannelId: voiceChannel.id,
-        },
-        lock: {
-          mode: 'pessimistic_write'
-        }
-      });
-
-      //  Memberを専有ロックで取得
-      const member = await manager.findOne(Member, {
+    await prisma.$transaction(async tx => {
+      await tx.member.upsert({
         where: {
           userId: target.id,
         },
-        lock: {
-          mode: 'pessimistic_write'
+        create: {
+          userId: target.id,
+          private_channel: {
+            connectOrCreate: {
+              where: {
+                voiceChannelId: voiceChannel.id,
+              },
+              create: {
+                voiceChannelId: voiceChannel.id,
+              },
+            },
+          },
+        },
+        update: {
+          private_channel: {
+            connectOrCreate: {
+              where: {
+                voiceChannelId: voiceChannel.id,
+              },
+              create: {
+                voiceChannelId: voiceChannel.id,
+              }
+            }
+          }
         }
       });
 
+      const privateChannel = await tx.private_channel.findUnique({
+        where: {
+          voiceChannelId: voiceChannel.id,
+        },
+      });
+
+      const member = await tx.member.findUnique({
+        where: {
+          userId: target.id,
+        },
+      });
+
       if (privateChannel == null || member == null) {
-        return;
+        throw new Error('DB Error');
       }
-      //  対応するTextChannelを用意
+
       const textChannel = await this.findOrCreateTextChannel(privateChannel.textChannelId, voiceChannel);
-      //  対応するRoleを用意
       const role = await this.findOrCreateRole(privateChannel.roleId, voiceChannel);
 
-      //  PrivateChannelエンティティのカラムを変更
-      privateChannel.textChannelId = textChannel.id;
-      privateChannel.roleId = role.id;
-      member.privateChannel = privateChannel;
-
-      //  DBの変更を保存
-      await manager.save([privateChannel, member]);
+      await tx.private_channel.update({
+        where: {
+          voiceChannelId: voiceChannel.id,
+        },
+        data: {
+          textChannelId: textChannel.id,
+          roleId: role.id,
+        },
+      });
 
       //  TextChannelの権限を編集
       await textChannel.permissionOverwrites.edit(role, {
@@ -96,8 +94,9 @@ export const RoomController = new class {
       });
 
       await target.roles.add(role);
-
     });
+
+    await prisma.$disconnect();
   }
 
   /**
@@ -119,55 +118,67 @@ export const RoomController = new class {
       return;
     }
 
-    //  トランザクション開始
-    await AppDataSource.transaction(async manager => {
-      //  PrivateChannelを専有ロックで取得
-      const privateChannel = await manager.findOne(PrivateChannel, {
+    await prisma.$transaction(async tx => {
+      const member = await tx.member.findUnique({
         where: {
-          voiceChannelId: voiceChannel.id,
-        },
-        lock: {
-          mode: 'pessimistic_write'
-        }
-      });
-      //  Memberを専有ロックで取得
-      const member = await manager.findOne(Member, {
-        where: { 
           userId: target.id,
         },
-        lock: {
-          mode: 'pessimistic_write'
+        include: {
+          private_channel: true,
         }
       });
 
-      if (privateChannel == null || member == null) {
+      if (member == null || member.private_channel == null) {
         return;
       }
 
-      member.privateChannel = null;
-
-      const role = await this.findRole(privateChannel.roleId, voiceChannel);
+      const role = await this.findRole(member.private_channel.roleId, voiceChannel);
 
       if (role) {
         await target.roles.remove(role);
+      } else {
+        console.log('No Role');
+        await tx.private_channel.update({
+          where: {
+            voiceChannelId: voiceChannel.id,
+          },
+          data: {
+            roleId: undefined,
+          },
+        });
       }
 
       //  ボイスチャンネルが0人になるか調べる
       if (voiceChannel.members.every(m => m.user.bot || m == target)) {
 
         //  0人になる場合、TextChannelとRoleを削除
-        const textChannel = await this.findTextChannel(privateChannel.textChannelId, voiceChannel);
+        const textChannel = await this.findTextChannel(member.private_channel.textChannelId, voiceChannel);
 
         await textChannel?.delete();
         await role?.delete();
 
-        privateChannel.textChannelId = null;
-        privateChannel.roleId = null;
+        await tx.private_channel.update({
+          where: {
+            voiceChannelId: voiceChannel.id,
+          },
+          data: {
+            textChannelId: undefined,
+            roleId: undefined,
+          },
+        });
       }
 
-      //  DBを更新
-      await manager.save([privateChannel, member]);
+      await tx.member.update({
+        where: {
+          userId: target.id,
+        },
+        data: {
+          private_channel: undefined
+        },
+      });
     });
+
+    await prisma.$disconnect();
   }
 
   /**
@@ -199,8 +210,11 @@ export const RoomController = new class {
     if (textChannelId == undefined) {
       return null;
     }
-
-    return <TextChannel | null>await voiceChannel.guild.channels.fetch(textChannelId);
+    try {
+      return <TextChannel|null>await voiceChannel.guild.channels.fetch(textChannelId);
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -264,7 +278,11 @@ export const RoomController = new class {
       return null;
     }
 
-    return await voiceChannel.guild.roles.fetch(roleId);
+    try {
+      return await voiceChannel.guild.roles.fetch(roleId);
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -305,13 +323,15 @@ export const RoomController = new class {
   async checkVoiceChannel(voiceChannel: VoiceChannel): Promise<void> {
     //  退室チェック
     console.log(`  ${voiceChannel.name}をチェック中...`)
-    const members = await AppDataSource.manager.find(Member, {
+
+    const members = await prisma.member.findMany({
       where: {
-        privateChannel: {
-          voiceChannelId: voiceChannel.id
-        }
-      }
+        private_channel: {
+          voiceChannelId: voiceChannel.id,
+        },
+      },
     });
+
     for (const member of members) {
       if (!voiceChannel.members.has(member.userId)) {
         //  退室していた場合
@@ -324,5 +344,6 @@ export const RoomController = new class {
     for (const [_id, target] of voiceChannel.members.filter(m => !m.user.bot)) {
       await this.memberJoin(voiceChannel, target);
     }
+    await prisma.$disconnect();
   }
 }
