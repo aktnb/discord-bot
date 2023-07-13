@@ -136,6 +136,16 @@ export const RoomController = new class {
 
       if (role) {
         await target.roles.remove(role);
+      } else {
+        console.log('No Role');
+        await tx.private_channel.update({
+          where: {
+            voiceChannelId: voiceChannel.id,
+          },
+          data: {
+            roleId: undefined,
+          },
+        });
       }
 
       //  ボイスチャンネルが0人になるか調べる
@@ -202,7 +212,7 @@ export const RoomController = new class {
     }
     try {
       return <TextChannel|null>await voiceChannel.guild.channels.fetch(textChannelId);
-    } finally {
+    } catch {
       return null;
     }
   }
@@ -270,7 +280,7 @@ export const RoomController = new class {
 
     try {
       return await voiceChannel.guild.roles.fetch(roleId);
-    } finally {
+    } catch {
       return null;
     }
   }
