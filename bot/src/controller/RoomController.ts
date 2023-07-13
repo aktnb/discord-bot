@@ -1,6 +1,7 @@
 import { ChannelType, GuildMember, OverwriteResolvable, PermissionsBitField, Role, TextChannel, VoiceChannel } from "discord.js";
 import { CLIENT } from "..";
 import { prisma } from '../lib/prisma';
+import { Prisma } from "@prisma/client";
 
 export const RoomController = new class {
 
@@ -94,6 +95,8 @@ export const RoomController = new class {
       });
 
       await target.roles.add(role);
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     });
 
     await prisma.$disconnect();
@@ -176,6 +179,8 @@ export const RoomController = new class {
           private_channel: undefined
         },
       });
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     });
 
     await prisma.$disconnect();

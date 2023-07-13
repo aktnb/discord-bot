@@ -1,5 +1,6 @@
 import { Guild, User } from "discord.js";
 import { prisma } from '../lib/prisma';
+import { Prisma } from "@prisma/client";
 
 export const CustomResponseController = new class {
 
@@ -53,6 +54,8 @@ export const CustomResponseController = new class {
           response: response,
         },
       });
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     });
 
     await prisma.$disconnect();
