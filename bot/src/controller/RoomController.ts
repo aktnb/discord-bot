@@ -77,6 +77,8 @@ export const RoomController = new class {
       const textChannel = await this.findOrCreateTextChannel(privateChannel.textChannelId, voiceChannel);
       const role = await this.findOrCreateRole(privateChannel.roleId, voiceChannel);
 
+      await target.roles.add(role);
+
       await tx.private_channel.update({
         where: {
           voiceChannelId: voiceChannel.id,
@@ -94,7 +96,6 @@ export const RoomController = new class {
         SendMessages: true
       });
 
-      await target.roles.add(role);
     }, {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     });
