@@ -86,9 +86,9 @@ export const RoomController = new class {
           roleId: role.id,
         },
       });
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     });
-
-    await prisma.$disconnect();
   }
 
   /**
@@ -168,9 +168,9 @@ export const RoomController = new class {
           privateChannelVoiceChannelId: null
         },
       });
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     });
-
-    await prisma.$disconnect();
   }
 
   /**
@@ -336,6 +336,5 @@ export const RoomController = new class {
     for (const [_id, target] of voiceChannel.members.filter(m => !m.user.bot)) {
       await this.memberJoin(voiceChannel, target);
     }
-    await prisma.$disconnect();
   }
 }
