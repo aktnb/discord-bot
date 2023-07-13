@@ -27,7 +27,7 @@ export const RoomController = new class {
 
     //  トランザクション開始
     await prisma.$transaction(async tx => {
-      await tx.member.upsert({
+      const member = await tx.member.upsert({
         where: {
           userId: target.id,
         },
@@ -55,29 +55,27 @@ export const RoomController = new class {
               }
             }
           }
-        }
-      });
-
-      const privateChannel = await tx.private_channel.findUnique({
-        where: {
-          voiceChannelId: voiceChannel.id,
+        },
+        include: {
+          private_channel: true,
         },
       });
 
-      const member = await tx.member.findUnique({
-        where: {
-          userId: target.id,
-        },
-      });
-
-      if (privateChannel == null || member == null) {
+      if (member == null || member.private_channel == null ) {
         throw new Error('DB Error');
       }
 
-      const textChannel = await this.findOrCreateTextChannel(privateChannel.textChannelId, voiceChannel);
-      const role = await this.findOrCreateRole(privateChannel.roleId, voiceChannel);
+      const textChannel = await this.findOrCreateTextChannel(member.private_channel.textChannelId, voiceChannel);
+      const role = await this.findOrCreateRole(member.private_channel.roleId, voiceChannel);
 
       await target.roles.add(role);
+
+      //  TextChannelの権限を編集
+      await textChannel.permissionOverwrites.edit(role, {
+        ReadMessageHistory: true,
+        ViewChannel: true,
+        SendMessages: true
+      });
 
       await tx.private_channel.update({
         where: {
@@ -88,14 +86,6 @@ export const RoomController = new class {
           roleId: role.id,
         },
       });
-
-      //  TextChannelの権限を編集
-      await textChannel.permissionOverwrites.edit(role, {
-        ReadMessageHistory: true,
-        ViewChannel: true,
-        SendMessages: true
-      });
-
     }, {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     });
@@ -177,7 +167,7 @@ export const RoomController = new class {
           userId: target.id,
         },
         data: {
-          private_channel: { }
+          privateChannelVoiceChannelId: null
         },
       });
     }, {
