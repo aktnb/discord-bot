@@ -1,7 +1,10 @@
 import { ChannelType, GuildMember, OverwriteResolvable, PermissionsBitField, Role, TextChannel, VoiceChannel } from "discord.js";
 import { CLIENT } from "..";
 import { prisma } from '../lib/prisma';
-import { Prisma } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
+
+const client1 = new PrismaClient({ log: ['query']});
+const client2 = new PrismaClient({ log: ['query']});
 
 export const RoomController = new class {
 
@@ -26,7 +29,7 @@ export const RoomController = new class {
     }
 
     //  トランザクション開始
-    await prisma.$transaction(async tx => {
+    await client1.$transaction(async tx => {
       const member = await tx.member.upsert({
         where: {
           userId: target.id,
@@ -110,7 +113,7 @@ export const RoomController = new class {
       return;
     }
 
-    await prisma.$transaction(async tx => {
+    await client2.$transaction(async tx => {
       const member = await tx.member.findUnique({
         where: {
           userId: target.id,
