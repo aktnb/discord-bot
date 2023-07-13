@@ -147,7 +147,7 @@ export const RoomController = new class {
             voiceChannelId: voiceChannel.id,
           },
           data: {
-            roleId: undefined,
+            roleId: null,
           },
         });
       }
@@ -166,8 +166,8 @@ export const RoomController = new class {
             voiceChannelId: voiceChannel.id,
           },
           data: {
-            textChannelId: undefined,
-            roleId: undefined,
+            textChannelId: null,
+            roleId: null,
           },
         });
       }
@@ -177,7 +177,7 @@ export const RoomController = new class {
           userId: target.id,
         },
         data: {
-          private_channel: undefined
+          private_channel: { }
         },
       });
     }, {
