@@ -86,8 +86,6 @@ export const RoomController = new class {
           roleId: role.id,
         },
       });
-    }, {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     });
 
     await prisma.$disconnect();
@@ -170,8 +168,6 @@ export const RoomController = new class {
           privateChannelVoiceChannelId: null
         },
       });
-    }, {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     });
 
     await prisma.$disconnect();
