@@ -1,7 +1,6 @@
 import { CommandInteractionOptionResolver, SlashCommandBuilder } from "discord.js";
 import { CommandHandler } from "../core";
 import { CustomResponseController } from "../controller/CustomResponseController";
-import { Response } from "../entity/Response";
 
 export const handler = new CommandHandler(
   new SlashCommandBuilder()
@@ -94,14 +93,7 @@ export const handler = new CommandHandler(
         return;
       }
       try {
-        const affected = await CustomResponseController.delCustomResponse(key, interaction.user, interaction.guild);
-
-        if (!affected) {
-          await interaction.editReply({
-            content: `\`${interaction.guild.name}\` で \`${key}\` に対するカスタムレスポンスは登録されていないようです`
-          });
-          return;
-        }
+        await CustomResponseController.delCustomResponse(key, interaction.user, interaction.guild);
 
         await interaction.editReply({
           content: `\`${interaction.guild.name}\` における \`${key}\` に対するカスタムレスポンスを削除しました`
@@ -110,7 +102,9 @@ export const handler = new CommandHandler(
 
       } catch (e) {
         console.error(e);
-        await interaction.editReply({ content: 'Unknown Error'});
+        await interaction.editReply({
+          content: `\`${interaction.guild.name}\` で \`${key}\` に対するカスタムレスポンスは登録されていないようです`
+        });
       }
       return;
     }
@@ -127,9 +121,11 @@ export const handler = new CommandHandler(
           return;
         }
 
-        const msg = (await Promise.all(responses.map(async ( res: Response ) => {
-          const author = await interaction.guild?.members.fetch(res.author.userId);
-          return `${res.key} -> ${res.response} : ${author?.displayName}`;
+        const msg = (await Promise.all(
+          responses
+            .map(async ( res ) => {
+              const author = await interaction.guild?.members.fetch(res.authorUserId);
+              return `${res.key} -> ${res.response} : ${author?.displayName}`;
         }))).join('\n');
 
         await interaction.editReply({

@@ -3,7 +3,7 @@ import { Client, Collection, CommandInteraction, GatewayIntentBits, User } from 
 import { CommandHandler, EventListener } from './core';
 import { TOKEN } from './config.json';
 import "reflect-metadata";
-import { AppDataSource } from './data-source';
+// import { AppDataSource } from './data-source';
 
 /**
  * CLIENT
@@ -117,7 +117,7 @@ async function main() {
   }
 
   //  DBに接続
-  await AppDataSource.initialize();
+  // await AppDataSource.initialize();
 
   //  イベントを読み込む
   const events_num = await addEventListener();
@@ -135,4 +135,4 @@ async function main() {
 /**
  * 起動
  */
-// main();
+main();

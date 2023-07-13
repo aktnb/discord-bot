@@ -1,4 +1,4 @@
-import { LayersModel, Tensor, browser, image, io, loadLayersModel, scalar, slice3d, tensor1d, tensor3d, tensor4d } from '@tensorflow/tfjs-node';
+import { LayersModel, Tensor, browser, image, io, loadLayersModel, scalar, slice3d, tensor3d } from '@tensorflow/tfjs-node';
 import { createCanvas, loadImage } from 'canvas';
 
 export const NijisanjiController = new class {
@@ -8,7 +8,7 @@ export const NijisanjiController = new class {
   async predict(image_url: string) {
 
     if (!this.model) {
-      const stream =  io.fileSystem('../keras_models/230611-225027_model_js/model.json');    //  <===========
+      const stream =  io.fileSystem('../keras_models/230611-225027_model_js/model.json');
       this.model = await loadLayersModel(stream);
       if (!this.model) {
         throw new Error('モデルを読み込めませんでした');

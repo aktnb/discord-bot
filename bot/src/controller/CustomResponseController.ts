@@ -1,67 +1,109 @@
 import { Guild, User } from "discord.js";
-import { Response } from "../entity/Response";
-import { AppDataSource } from "../data-source";
-import { Member } from "../entity/Member";
+import { PrismaClient } from '@prisma/client';
 
 export const CustomResponseController = new class {
 
   async addCustomResponse(key: string, response: string, owner: User, guild: Guild) {
 
-    await AppDataSource.transaction(async managaer => {
-      const otherResponse = await managaer.findOne(Response, {
+    const prisma = new PrismaClient();
+
+    await prisma.$transaction(async tx => {
+
+      const other = await tx.response.findUnique({
         where: {
-          key: key,
-          guildId: guild.id
+          key_guildId: {
+            key: key,
+            guildId: guild.id,
+          },
+          member: {
+            userId: { not: owner.id },
+          }
         },
-        relations: {
-          author: true
-        }
       });
 
-      if (otherResponse && otherResponse?.author.userId !== owner.id) {
-        //  既にキーにカスタムレスポンスが登録されている場合
+      //  既にキーが使われている場合
+      if (other) {
         throw new Error('duplicated');
       }
 
-      const customResponse = new Response();
-      customResponse.author = { userId: owner.id };
-      customResponse.guildId = guild.id;
-      customResponse.key = key;
-      customResponse.response = response;
-
-      await managaer.upsert(Member, [{ userId: owner.id }], ['userId']);
-      await managaer.upsert(Response, [customResponse], ['key', 'guildId']);
+      await tx.response.upsert({
+        where: {
+          key_guildId: {
+            key: key,
+            guildId: guild.id,
+          },
+          member: {
+            userId: owner.id,
+          },
+        },
+        create: {
+          key: key,
+          guildId: guild.id,
+          response: response,
+          member: {
+            connectOrCreate: {
+              create: {
+                userId: owner.id,
+              },
+              where: {
+                userId: owner.id,
+              },
+            },
+          },
+        },
+        update: {
+          response: response,
+        },
+      });
     });
+
+    await prisma.$disconnect();
   }
 
   async delCustomResponse(key: string, owner: User, guild: Guild) {
-    const result = await AppDataSource.manager.delete(Response, {
-      key: key,
-      author: {
-        userId: owner.id
+
+    const prisma = new PrismaClient();
+    await prisma.response.delete({
+      where: {
+        key_guildId: {
+          key: key,
+          guildId: guild.id,
+        },
+        member: {
+          userId: owner.id,
+        },
       },
-      guildId: guild.id
     });
-    return result.affected;
+    await prisma.$disconnect();
   }
 
   async getGuildsCustomResponses(guild: Guild) {
-    return await AppDataSource.manager.find(Response, {
+    const prisma = new PrismaClient();
+
+    const crs = await prisma.response.findMany({
       where: {
-        guildId: guild.id
+        guildId: guild.id,
       },
-      relations: {
-        author: true
-      }
     });
+
+    await prisma.$disconnect();
+    return crs;
   }
 
   async findResponse(key: string, guild: Guild) {
-    return await AppDataSource.manager.findOne(Response, {
+    const prisma = new PrismaClient();
+
+    const res = prisma.response.findUnique({
       where: {
-        guildId: guild.id,
-        key: key
-      }
+        key_guildId: {
+          key: key,
+          guildId: guild.id,
+        },
+      },
     });
+
+    await prisma.$disconnect();
+
+    return res;
   }
 }
