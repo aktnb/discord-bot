@@ -1,11 +1,9 @@
 import { Guild, User } from "discord.js";
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
 export const CustomResponseController = new class {
 
   async addCustomResponse(key: string, response: string, owner: User, guild: Guild) {
-
-    const prisma = new PrismaClient();
 
     await prisma.$transaction(async tx => {
 
@@ -62,7 +60,6 @@ export const CustomResponseController = new class {
 
   async delCustomResponse(key: string, owner: User, guild: Guild) {
 
-    const prisma = new PrismaClient();
     await prisma.response.delete({
       where: {
         key_guildId: {
@@ -78,7 +75,6 @@ export const CustomResponseController = new class {
   }
 
   async getGuildsCustomResponses(guild: Guild) {
-    const prisma = new PrismaClient();
 
     const crs = await prisma.response.findMany({
       where: {
@@ -91,7 +87,6 @@ export const CustomResponseController = new class {
   }
 
   async findResponse(key: string, guild: Guild) {
-    const prisma = new PrismaClient();
 
     const res = prisma.response.findUnique({
       where: {

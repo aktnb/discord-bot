@@ -1,6 +1,6 @@
 import { ChannelType, GuildMember, OverwriteResolvable, PermissionsBitField, Role, TextChannel, VoiceChannel } from "discord.js";
 import { CLIENT } from "..";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from '../lib/prisma';
 
 export const RoomController = new class {
 
@@ -23,8 +23,6 @@ export const RoomController = new class {
       console.log(`${target.displayName}がAFKチャンネルに入室`);
       return;
     }
-
-    const prisma = new PrismaClient();
 
     //  トランザクション開始
     await prisma.$transaction(async tx => {
@@ -119,8 +117,6 @@ export const RoomController = new class {
       //  退室元がAFKチャンネルの場合、アーリーリターン
       return;
     }
-
-    const prisma = new PrismaClient();
 
     await prisma.$transaction(async tx => {
       const member = await tx.member.findUnique({
@@ -317,7 +313,6 @@ export const RoomController = new class {
   async checkVoiceChannel(voiceChannel: VoiceChannel): Promise<void> {
     //  退室チェック
     console.log(`  ${voiceChannel.name}をチェック中...`)
-    const prisma = new PrismaClient();
 
     const members = await prisma.member.findMany({
       where: {

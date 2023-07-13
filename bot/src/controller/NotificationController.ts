@@ -1,5 +1,5 @@
-import { PrismaClient } from "@prisma/client";
 import { GuildMember, VoiceChannel } from "discord.js";
+import { prisma } from "../lib/prisma";
 
 export const NotificationController = new class {
 
@@ -13,8 +13,6 @@ export const NotificationController = new class {
    * @param all 
    */
   async addNotification(target: GuildMember, voiceChannel: VoiceChannel, always: boolean, all: boolean) {
-
-    const prisma = new PrismaClient();
 
     await prisma.vc_notification.create({
       data: {
@@ -41,7 +39,6 @@ export const NotificationController = new class {
 
     //  ログ
     console.log('通知解除');
-    const prisma = new PrismaClient();
 
     await prisma.vc_notification.delete({
       where: {
@@ -56,7 +53,6 @@ export const NotificationController = new class {
   }
 
   async listNotification(target: GuildMember) {
-    const prisma = new PrismaClient();
 
     const notifications = await prisma.vc_notification.findMany({
       where: {
@@ -83,8 +79,6 @@ export const NotificationController = new class {
   }
 
   async notify(voiceChannel: VoiceChannel, trigger: GuildMember) {
-
-    const prisma = new PrismaClient();
 
     const settings = await prisma.vc_notification.findMany({
       where: {
