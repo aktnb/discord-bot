@@ -79,45 +79,45 @@ export const NotificationController = new class {
   }
 
   async notify(voiceChannel: VoiceChannel, trigger: GuildMember) {
-
-    const settings = await prisma.vc_notification.findMany({
-      where: {
-        voiceChannelId: voiceChannel.id,
-      },
-    });
-
-    //  ログ
-    console.log(`${settings.length}個の通知設定があります`);
-
-    await Promise.all(settings.filter(async setting => {
-      const member = await voiceChannel.guild.members.fetch(setting.memberUserId);
-      if (!member) {
-        await prisma.vc_notification.delete({
-          where: {
-            id: setting.id,
-          }
-        });
-        return;
-      }
-
-      if (voiceChannel.members.has(member.id) === true) {
-        return;
-      }
-
-      if (member.presence?.status !== 'online' && setting.always === false) {
-        return;
-      }
-
-      if (voiceChannel.members.filter(m => !m.user.bot).size > 1 && setting.all === false) {
-        return;
-      }
-
-      const dm = member.dmChannel ?? await member.createDM();
-      await dm.send({
-        content: `${voiceChannel.url} に${voiceChannel.members.size}人のメンバーが入室しています`,
+    try {
+      const settings = await prisma.vc_notification.findMany({
+        where: {
+          voiceChannelId: voiceChannel.id,
+        },
       });
-    }));
 
-    await prisma.$disconnect();
+      console.log(`${settings.length}個の通知設定があります`);
+
+      await Promise.all(settings.filter(async setting => {
+        const member = await voiceChannel.guild.members.fetch(setting.memberUserId);
+        if (!member) {
+          await prisma.vc_notification.delete({
+            where: {
+              id: setting.id,
+            }
+          });
+          return;
+        }
+
+        if (voiceChannel.members.has(member.id) === true) {
+          return;
+        }
+
+        if (member.presence?.status !== 'online' && setting.always === false) {
+          return;
+        }
+
+        if (voiceChannel.members.filter(m => !m.user.bot).size > 1 && setting.all === false) {
+          return;
+        }
+
+        const dm = member.dmChannel ?? await member.createDM();
+        await dm.send({
+          content: `${voiceChannel.url} に${voiceChannel.members.size}人のメンバーが入室しています`,
+        });
+      }));
+    } catch (e) {
+
+    }
   }
 }

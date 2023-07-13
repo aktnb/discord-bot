@@ -1,10 +1,10 @@
 import { ChannelType, GuildMember, OverwriteResolvable, PermissionsBitField, Role, TextChannel, VoiceChannel } from "discord.js";
 import { CLIENT } from "..";
 import { prisma } from '../lib/prisma';
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import AsyncLock from 'async-lock';
 
-const client1 = new PrismaClient({ log: ['query']});
-const client2 = new PrismaClient({ log: ['query']});
+const lock = new AsyncLock();
 
 export const RoomController = new class {
 
@@ -28,69 +28,71 @@ export const RoomController = new class {
       return;
     }
 
+    await lock.acquire([voiceChannel.id, target.id], async () => {
     //  トランザクション開始
-    await client1.$transaction(async tx => {
-      const member = await tx.member.upsert({
-        where: {
-          userId: target.id,
-        },
-        create: {
-          userId: target.id,
-          private_channel: {
-            connectOrCreate: {
-              where: {
-                voiceChannelId: voiceChannel.id,
-              },
-              create: {
-                voiceChannelId: voiceChannel.id,
+      await prisma.$transaction(async tx => {
+        const member = await tx.member.upsert({
+          where: {
+            userId: target.id,
+          },
+          create: {
+            userId: target.id,
+            private_channel: {
+              connectOrCreate: {
+                where: {
+                  voiceChannelId: voiceChannel.id,
+                },
+                create: {
+                  voiceChannelId: voiceChannel.id,
+                },
               },
             },
           },
-        },
-        update: {
-          private_channel: {
-            connectOrCreate: {
-              where: {
-                voiceChannelId: voiceChannel.id,
-              },
-              create: {
-                voiceChannelId: voiceChannel.id,
+          update: {
+            private_channel: {
+              connectOrCreate: {
+                where: {
+                  voiceChannelId: voiceChannel.id,
+                },
+                create: {
+                  voiceChannelId: voiceChannel.id,
+                }
               }
             }
-          }
-        },
-        include: {
-          private_channel: true,
-        },
+          },
+          include: {
+            private_channel: true,
+          },
+        });
+
+        if (member == null || member.private_channel == null ) {
+          throw new Error('DB Error');
+        }
+
+        const textChannel = await this.findOrCreateTextChannel(member.private_channel.textChannelId, voiceChannel);
+        const role = await this.findOrCreateRole(member.private_channel.roleId, voiceChannel);
+
+        await target.roles.add(role);
+
+        //  TextChannelの権限を編集
+        await textChannel.permissionOverwrites.edit(role, {
+          ReadMessageHistory: true,
+          ViewChannel: true,
+          SendMessages: true
+        });
+
+        await tx.private_channel.update({
+          where: {
+            voiceChannelId: voiceChannel.id,
+          },
+          data: {
+            textChannelId: textChannel.id,
+            roleId: role.id,
+          },
+        });
+      }, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
       });
-
-      if (member == null || member.private_channel == null ) {
-        throw new Error('DB Error');
-      }
-
-      const textChannel = await this.findOrCreateTextChannel(member.private_channel.textChannelId, voiceChannel);
-      const role = await this.findOrCreateRole(member.private_channel.roleId, voiceChannel);
-
-      await target.roles.add(role);
-
-      //  TextChannelの権限を編集
-      await textChannel.permissionOverwrites.edit(role, {
-        ReadMessageHistory: true,
-        ViewChannel: true,
-        SendMessages: true
-      });
-
-      await tx.private_channel.update({
-        where: {
-          voiceChannelId: voiceChannel.id,
-        },
-        data: {
-          textChannelId: textChannel.id,
-          roleId: role.id,
-        },
-      });
-    }, {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     });
   }
 
@@ -113,66 +115,58 @@ export const RoomController = new class {
       return;
     }
 
-    await client2.$transaction(async tx => {
-      const member = await tx.member.findUnique({
-        where: {
-          userId: target.id,
-        },
-        include: {
-          private_channel: true,
+    await lock.acquire([voiceChannel.id, target.id], async () => {
+        await prisma.$transaction(async tx => {
+        const member = await tx.member.findUnique({
+          where: {
+            userId: target.id,
+          },
+          include: {
+            private_channel: true,
+          }
+        });
+
+        if (member == null || member.private_channel == null) {
+          return;
         }
-      });
 
-      if (member == null || member.private_channel == null) {
-        return;
-      }
+        const role = await this.findRole(member.private_channel.roleId, voiceChannel);
 
-      const role = await this.findRole(member.private_channel.roleId, voiceChannel);
+        if (role) {
+          await target.roles.remove(role);
+        }
 
-      if (role) {
-        await target.roles.remove(role);
-      } else {
-        console.log('No Role');
-        await tx.private_channel.update({
+        await tx.member.update({
           where: {
-            voiceChannelId: voiceChannel.id,
+            userId: target.id,
           },
           data: {
-            roleId: null,
+            privateChannelVoiceChannelId: null
           },
         });
-      }
 
-      //  ボイスチャンネルが0人になるか調べる
-      if (voiceChannel.members.every(m => m.user.bot || m == target)) {
+        //  ボイスチャンネルが0人になるか調べる
+        if (voiceChannel.members.every(m => m.user.bot || m == target)) {
 
-        //  0人になる場合、TextChannelとRoleを削除
-        const textChannel = await this.findTextChannel(member.private_channel.textChannelId, voiceChannel);
+          await tx.private_channel.update({
+            where: {
+              voiceChannelId: voiceChannel.id,
+            },
+            data: {
+              textChannelId: null,
+              roleId: null,
+            },
+          });
 
-        await textChannel?.delete();
-        await role?.delete();
+          //  0人になる場合、TextChannelとRoleを削除
+          const textChannel = await this.findTextChannel(member.private_channel.textChannelId, voiceChannel);
 
-        await tx.private_channel.update({
-          where: {
-            voiceChannelId: voiceChannel.id,
-          },
-          data: {
-            textChannelId: null,
-            roleId: null,
-          },
-        });
-      }
-
-      await tx.member.update({
-        where: {
-          userId: target.id,
-        },
-        data: {
-          privateChannelVoiceChannelId: null
-        },
+          await textChannel?.delete();
+          await role?.delete();
+        }
+      }, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
       });
-    }, {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     });
   }
 
