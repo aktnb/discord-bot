@@ -74,7 +74,6 @@ export const CustomResponseController = new class {
         },
       },
     });
-    await prisma.$disconnect();
   }
 
   async getGuildsCustomResponses(guild: Guild) {
@@ -85,7 +84,6 @@ export const CustomResponseController = new class {
       },
     });
 
-    await prisma.$disconnect();
     return crs;
   }
 
@@ -99,8 +97,6 @@ export const CustomResponseController = new class {
         },
       },
     });
-
-    await prisma.$disconnect();
 
     return res;
   }
