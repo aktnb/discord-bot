@@ -3,7 +3,7 @@ import sharp from 'sharp';
 import { loadAsync } from '../../lib/texttosvg';
 
 export async function getZundamonImage(text: string): Promise<Buffer> {
-  const textToSVG = await loadAsync("./services/zundamon/rounded-l-mplus-1mn-medium.ttf");
+  const textToSVG = await loadAsync("../assets/zundamon/rounded-l-mplus-1mn-medium.ttf");
   let left = 98;
   let top = 25;
   const WIDTH = 800;
@@ -35,7 +35,7 @@ export async function getZundamonImage(text: string): Promise<Buffer> {
     top: Math.round(top+idx*fontSize*1.1),
   }));
 
-  const image = await sharp("./services/zundamon/source1.png")
+  const image = await sharp("../assets/zundamon/source1.png")
     .composite(svgs).png().toBuffer();
   return image;
 }
