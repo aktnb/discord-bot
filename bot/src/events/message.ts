@@ -2,6 +2,7 @@ import { Events, Message } from "discord.js";
 import { EventListener } from "../core";
 import { CustomResponseController } from "../controller/CustomResponseController";
 import { NgWordController } from '../controller/NgWordController';
+import { getZundamonImage } from "../services/zundamon";
 
 export const listener = new EventListener(
   Events.MessageCreate,
@@ -14,7 +15,10 @@ export const listener = new EventListener(
       return;
     }
 
-    if (NgWordController.isNgWordContain(message.content)) {
+    if (message.content.trimEnd().endsWith("のだ")) {
+      const buffer = await getZundamonImage(message.content.trim());
+      message.reply({ files: [buffer] });
+    } else if (NgWordController.isNgWordContain(message.content)) {
       try {
         const url = await NgWordController.getCatUrl();
         await message.reply({
