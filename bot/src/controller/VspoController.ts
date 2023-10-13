@@ -20,13 +20,14 @@ export const VspoController = new class {
     '橘ひなの',
     '兎咲ミミ',
     '八雲べに',
+    '夢野あかり',
   ];
   private model: LayersModel | null = null;
 
   async predict(image_url: string) {
 
     if (!this.model) {
-      const stream =  io.fileSystem('../keras_models/230614-032443_model_js/model.json');    //  <===========
+      const stream =  io.fileSystem('../keras_models/230915-214052_model/model.json');    //  <===========
       this.model = await loadLayersModel(stream);
       if (!this.model) {
         throw new Error('モデルを読み込めませんでした');
