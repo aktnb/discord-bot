@@ -1,8 +1,8 @@
-import { Events, Message } from "discord.js";
+import { AttachmentBuilder, Events, Message } from "discord.js";
 import { EventListener } from "../core";
 import { CustomResponseController } from "../controller/CustomResponseController";
 import { NgWordController } from '../controller/NgWordController';
-import { getZundamonImage } from "../services/zundamon";
+import { getZundaVoice, getZundamonImage } from "../services/zundamon";
 
 export const listener = new EventListener(
   Events.MessageCreate,
@@ -16,8 +16,12 @@ export const listener = new EventListener(
     }
 
     if (message.content.trimEnd().endsWith("のだ")) {
-      const buffer = await getZundamonImage(message.content.trim());
-      message.reply({ files: [buffer] });
+      const [buffer, wav] = await Promise.all([getZundamonImage(message.content.trim()), getZundaVoice(message.content.trim())]);
+      message.reply({
+        files: [
+          new AttachmentBuilder(buffer),
+          new AttachmentBuilder(wav).setName('voice.wav')]
+        });
     } else if (NgWordController.isNgWordContain(message.content)) {
       try {
         const url = await NgWordController.getCatUrl();
