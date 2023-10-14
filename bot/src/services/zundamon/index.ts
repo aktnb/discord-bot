@@ -3,6 +3,8 @@ import sharp from 'sharp';
 import { loadAsync } from '../../lib/texttosvg';
 import httpAsync from '../../lib/http-async';
 
+import { ZUNDA_ENDPOINT } from '../../config.json';
+
 export async function getZundamonImage(text: string): Promise<Buffer> {
   const textToSVG = await loadAsync("../assets/zundamon/rounded-l-mplus-1mn-medium.ttf");
   let left = 98;
@@ -42,10 +44,10 @@ export async function getZundamonImage(text: string): Promise<Buffer> {
 }
 
 export async function getZundaVoice(text: string) {
-  const query = await httpAsync.request(`http://voicevox:50021/audio_query?speaker=1&text=${encodeURIComponent(text)}`, {
+  const query = await httpAsync.request(`${ZUNDA_ENDPOINT}/audio_query?speaker=1&text=${encodeURIComponent(text)}`, {
     method: 'POST',
   }, null);
-  return await httpAsync.request(`http://voicevox:50021/synthesis?speaker=1`, {
+  return await httpAsync.request(`${ZUNDA_ENDPOINT}/synthesis?speaker=1`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
