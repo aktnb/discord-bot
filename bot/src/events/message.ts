@@ -16,12 +16,10 @@ export const listener = new EventListener(
     }
 
     if (message.content.trimEnd().endsWith("のだ")) {
-      const [buffer, wav] = await Promise.all([getZundamonImage(message.content.trim()), getZundaVoice(message.content.trim())]);
-      message.reply({
-        files: [
-          new AttachmentBuilder(buffer),
-          new AttachmentBuilder(wav).setName('voice.wav')]
-        });
+      const image = getZundamonImage(message.content.trim());
+      const wav = getZundaVoice(message.content.trim());
+      const reply = await message.reply({ files: [ await image ]});
+      await reply.reply({ files: [ new AttachmentBuilder(await wav).setName('voice.wav')] });
     } else if (NgWordController.isNgWordContain(message.content)) {
       try {
         const url = await NgWordController.getCatUrl();
