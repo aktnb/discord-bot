@@ -15,12 +15,15 @@ export const listener = new EventListener(
       return;
     }
 
-    if (message.content.trimEnd().endsWith("のだ")) {
-      const image = getZundamonImage(message.content.trim());
-      const wav = getZundaVoice(message.content.trim());
+    const text = message.content.replaceAll(/<@\d{18}>/g, '');
+    const result = message.content.match(/のだ[!?\.。？！]*?$/);
+    console.log(result);
+    if (result) {
+      const image = getZundamonImage(text.trim());
+      const wav = getZundaVoice(text.trim());
       const reply = await message.reply({ files: [ await image ]});
       await reply.reply({ files: [ new AttachmentBuilder(await wav).setName('voice.wav')] });
-    } else if (NgWordController.isNgWordContain(message.content)) {
+    } else if (NgWordController.isNgWordContain(text)) {
       try {
         const url = await NgWordController.getCatUrl();
         await message.reply({
