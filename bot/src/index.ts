@@ -1,9 +1,11 @@
 import fs from 'fs';
+import * as dotenv from 'dotenv';
+dotenv.config({ path: '../.env' });
 import { Client, Collection, CommandInteraction, GatewayIntentBits, User } from "discord.js";
 import { CommandHandler, EventListener } from './core';
-import { TOKEN } from './config.json';
 import "reflect-metadata";
-// import { AppDataSource } from './data-source';
+
+const TOKEN = process.env.TOKEN;
 
 /**
  * CLIENT

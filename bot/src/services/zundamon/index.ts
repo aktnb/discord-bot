@@ -1,9 +1,11 @@
 import sharp from 'sharp';
+import * as dotenv from 'dotenv';
+dotenv.config({ path: '../.env' });
 
 import { loadAsync } from '../../lib/texttosvg';
 import httpAsync from '../../lib/http-async';
 
-import { ZUNDA_ENDPOINT } from '../../config.json';
+const ZUNDA_ENDPOINT = process.env.ZUNDA_ENDPOINT;
 
 export async function getZundamonImage(text: string): Promise<Buffer> {
   const textToSVG = await loadAsync("../assets/zundamon/rounded-l-mplus-1mn-medium.ttf");

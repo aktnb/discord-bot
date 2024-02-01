@@ -7,7 +7,7 @@ WORKDIR /workspace/discord-bot
 
 COPY ./bot/package*.json ./
 
-RUN npm i
+RUN npm ci
 
 # ARM
 RUN npm rebuild @tensorflow/tfjs-node --build-from-source
