@@ -11,7 +11,7 @@ services:
     build: ./
     tty: true
     volumes:
-      - ./bot/:/workspace/discord-bot:cached
+      - ./bot/:/workspace/discord-bot
       - node-modules:/workspace/discord-bot/node_modules
     working_dir: /workspace/discord-bot
     networks:
