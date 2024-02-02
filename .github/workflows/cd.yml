@@ -8,20 +8,31 @@ jobs:
     name: Build and Deploy
     runs-on: [self-hosted, linux, ARM64]
     steps:
+      - name: check user
+        run: whoami
+
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: check user
-        run: whoami
-      
       - name: Set up buildx
         uses: docker/setup-buildx-action@v2
 
       - name: Stop Docker Compose
         run: docker compose down
 
-      - name: Build and Up
-        run: docker compose up -d --build
+      - name: Create .env
+        run: |
+          touch ./bot/.env
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> ./bot/.env
+          echo "TOKEN=${{ secrets.TOKEN }}" >> ./bot/.env
+          echo "CLIENT_ID=${{ secrets.CLIENT_ID }}" >> ./bot/.env
+          echo "ZUNDA_ENDPOINT=${{ secrets.ZUNDA_ENDPOINT }}" >> ./bot/.env
+
+      - name: Build
+        run: docker compose build
+
+      - name: Up
+        run: docker compose up -d
 
       - name: Deploy-command
         run: docker compose exec discord-bot npm run deploy-command
@@ -29,5 +40,5 @@ jobs:
       - name: Build
         run: docker compose exec discord-bot npm run build
 
-      - name: tmux
-        run: tmux new -s discord -d 'docker compose exec discord-bot npm run start'
+      - name: Start
+        run: docker compose exec -d discord-bot npm run start
